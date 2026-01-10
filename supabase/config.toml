@@ -1,0 +1,26 @@
+# Supabase local development configuration
+project_id = "pick-a-winner"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+
+[storage]
+file_size_limit = "50MiB"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000", "http://192.168.77.126:3000"]
+
+[analytics]
+enabled = false
