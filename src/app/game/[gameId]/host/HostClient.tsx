@@ -39,6 +39,8 @@ export default function HostClient({ gameId }: { gameId: string }) {
 
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [gameName, setGameName] = useState<string | null>(null);
+  const [gameStatus, setGameStatus] = useState<"ACTIVE" | "ENDED">("ACTIVE");
+  const [endedAt, setEndedAt] = useState<string | null>(null);
   const [displayToken, setDisplayToken] = useState<string | null>(null);
   const [voteCounts, setVoteCounts] = useState<OptionCount[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
@@ -66,12 +68,14 @@ export default function HostClient({ gameId }: { gameId: string }) {
   const fetchGame = useCallback(async () => {
     const { data } = await supabase
       .from("games")
-      .select("name, display_token")
+      .select("name, display_token, status, ended_at")
       .eq("id", gameId)
       .maybeSingle();
 
     setGameName(data?.name ?? null);
     setDisplayToken(data?.display_token ?? null);
+    setGameStatus((data?.status as "ACTIVE" | "ENDED") ?? "ACTIVE");
+    setEndedAt(data?.ended_at ?? null);
   }, [gameId, supabase]);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -238,7 +242,12 @@ export default function HostClient({ gameId }: { gameId: string }) {
       p_round_id: roundId,
     });
 
-    if (error) setStatusMessage(error.message);
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    await fetchRounds();
   };
 
   const handleScoreRound = async () => {
@@ -263,6 +272,27 @@ export default function HostClient({ gameId }: { gameId: string }) {
     }
 
     setSelectedCorrect(null);
+    await fetchRounds();
+  };
+
+  const handleEndGame = async () => {
+    const confirmed = window.confirm(
+      "End this game now? This will close any open round."
+    );
+    if (!confirmed) return;
+
+    const { error } = await supabase.rpc("end_game", {
+      p_game_id: gameId,
+    });
+
+    if (error) {
+      setStatusMessage(error.message);
+      return;
+    }
+
+    await fetchGame();
+    await fetchRounds();
+    await fetchLeaderboard();
   };
 
   useEffect(() => {
@@ -308,10 +338,23 @@ export default function HostClient({ gameId }: { gameId: string }) {
                 {t("display_screen")}
               </Link>
             )}
+            {gameStatus === "ACTIVE" ? (
+              <button
+                type="button"
+                onClick={handleEndGame}
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-accent"
+              >
+                End game
+              </button>
+            ) : (
+              <span className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted">
+                Ended {endedAt ? new Date(endedAt).toLocaleString() : ""}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => router.push(`/game/${gameId}`)}
-              className="rounded-full border border-border bg-white/70 px-4 py-2 text-sm text-muted hover:text-foreground"
+              className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
             >
               Player view
             </button>
@@ -334,13 +377,13 @@ export default function HostClient({ gameId }: { gameId: string }) {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t("round_title")}
-                className="w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
               <input
                 value={hint}
                 onChange={(event) => setHint(event.target.value)}
                 placeholder={t("round_hint")}
-                className="w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
 
               <div className="space-y-3">
@@ -352,7 +395,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
                         handleOptionChange(index, event.target.value)
                       }
                       placeholder={`${t("round_options")} ${index + 1}`}
-                      className="flex-1 rounded-2xl border border-border bg-white/70 px-4 py-2 text-sm text-foreground outline-none focus:border-accent"
+                      className="flex-1 rounded-2xl border border-border bg-card px-4 py-2 text-sm text-foreground outline-none focus:border-accent"
                     />
                     {options.length > 2 && (
                       <button
@@ -385,7 +428,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
             </form>
           </section>
 
-          <section className="rounded-3xl border border-border bg-white/70 p-6">
+          <section className="rounded-3xl border border-border bg-card p-6">
             <h2 className="text-xl font-semibold text-foreground">
               {t("leaderboard")}
             </h2>
@@ -410,6 +453,43 @@ export default function HostClient({ gameId }: { gameId: string }) {
           </section>
         </div>
 
+        {gameStatus === "ENDED" && (
+          <section className="rounded-3xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-foreground">
+                Final scorecard
+              </h2>
+              <span className="text-xs uppercase tracking-[0.2em] text-muted">
+                {leaderboard.length} aliases
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3">
+              {leaderboard.map((row, index) => (
+                <div
+                  key={row.alias_id}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3"
+                >
+                  <span className="text-sm font-semibold text-muted">
+                    #{index + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {row.alias_name}
+                      {row.owner_name ? ` (${row.owner_name})` : ""}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {row.correct_count} correct picks
+                    </p>
+                  </div>
+                  <span className="text-lg font-semibold text-foreground">
+                    {row.points}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="rounded-3xl border border-border bg-card p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-foreground">Rounds</h2>
@@ -422,7 +502,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
             {rounds.map((round) => (
               <div
                 key={round.id}
-                className="rounded-2xl border border-border bg-white/70 p-4"
+                className="rounded-2xl border border-border bg-card p-4"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -455,7 +535,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
         </section>
 
         {openRound && (
-          <section className="rounded-3xl border border-border bg-white/70 p-6">
+          <section className="rounded-3xl border border-border bg-card p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-foreground">
                 {t("live_distribution")}

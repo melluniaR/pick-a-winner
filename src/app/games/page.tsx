@@ -184,7 +184,7 @@ export default function GamesPage() {
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <button
-              className="rounded-full border border-border bg-white/70 px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
+              className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
               type="button"
               onClick={handleSignOut}
             >
@@ -200,7 +200,7 @@ export default function GamesPage() {
         )}
 
         {!hasDisplayName && (
-          <section className="rounded-3xl border border-border bg-white/70 p-6">
+          <section className="rounded-3xl border border-border bg-card p-6">
             <h2 className="text-xl font-semibold text-foreground">
               Set your display name
             </h2>
@@ -213,7 +213,7 @@ export default function GamesPage() {
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 placeholder="Display name"
-                className="flex-1 rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
               <button
                 type="submit"
@@ -236,7 +236,7 @@ export default function GamesPage() {
                 value={joinCode}
                 onChange={(event) => setJoinCode(event.target.value)}
                 placeholder={t("enter_game_code")}
-                className="w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
               <button
                 type="submit"
@@ -256,7 +256,7 @@ export default function GamesPage() {
                 value={gameName}
                 onChange={(event) => setGameName(event.target.value)}
                 placeholder={t("game_name")}
-                className="w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                className="w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
               <button
                 type="submit"
@@ -268,7 +268,7 @@ export default function GamesPage() {
           </section>
         </div>
 
-        <section className="rounded-3xl border border-border bg-white/70 p-6">
+        <section className="rounded-3xl border border-border bg-card p-6">
           <h2 className="text-xl font-semibold text-foreground">
             {t("my_games")}
           </h2>

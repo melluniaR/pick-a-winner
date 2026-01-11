@@ -8,7 +8,7 @@ export function LanguageSwitcher() {
   return (
     <div className="flex items-center gap-2 text-sm text-muted">
       <span>{t("language")}</span>
-      <div className="flex rounded-full border border-border bg-white/70 p-1">
+      <div className="flex rounded-full border border-border bg-card p-1">
         <button
           className={`px-3 py-1 rounded-full transition ${
             lang === "en"

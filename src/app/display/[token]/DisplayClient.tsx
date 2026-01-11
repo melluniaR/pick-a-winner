@@ -59,7 +59,7 @@ export default function DisplayClient({ token }: { token: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6efe4] px-10 py-12 text-foreground">
+    <div className="min-h-screen bg-background px-10 py-12 text-foreground">
       <div className="mx-auto flex h-full max-w-6xl flex-col gap-10">
         <header className="flex items-center justify-between">
           <div>
@@ -70,13 +70,28 @@ export default function DisplayClient({ token }: { token: string }) {
               {state.game.name}
             </h1>
           </div>
-          <div className="rounded-full border border-border bg-white/70 px-4 py-2 text-sm text-muted">
-            {state.mode === "OPEN" ? "Voting live" : "Leaderboard"}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  window.location.href = "/games";
+                }
+              }}
+              className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
+            >
+              Exit display
+            </button>
+            <div className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted">
+              {state.mode === "OPEN" ? "Voting live" : "Leaderboard"}
+            </div>
           </div>
         </header>
 
         {state.mode === "OPEN" && state.round ? (
-          <section className="rounded-[2rem] border border-border bg-white/80 p-10 shadow-[0_30px_80px_rgba(0,0,0,0.12)]">
+          <section className="rounded-[2rem] border border-border bg-card p-10 shadow-[0_30px_80px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-muted">
@@ -112,7 +127,7 @@ export default function DisplayClient({ token }: { token: string }) {
                         {option.count} votes ({percentage}%)
                       </p>
                     </div>
-                    <div className="mt-3 h-3 w-full rounded-full bg-[#f0e6d8]">
+                    <div className="mt-3 h-3 w-full rounded-full bg-card-strong">
                       <div
                         className="h-3 rounded-full bg-accent"
                         style={{ width: `${percentage}%` }}
@@ -124,7 +139,7 @@ export default function DisplayClient({ token }: { token: string }) {
             </div>
           </section>
         ) : (
-          <section className="rounded-[2rem] border border-border bg-white/80 p-10 shadow-[0_30px_80px_rgba(0,0,0,0.12)]">
+          <section className="rounded-[2rem] border border-border bg-card p-10 shadow-[0_30px_80px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-muted">

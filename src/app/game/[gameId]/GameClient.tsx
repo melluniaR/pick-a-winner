@@ -41,7 +41,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
   const [gameName, setGameName] = useState<string | null>(null);
   const [role, setRole] = useState<"HOST" | "PLAYER" | null>(null);
   const [aliases, setAliases] = useState<Alias[]>([]);
-  const [selectedAliases, setSelectedAliases] = useState<string[]>([]);
+  const [selectedAliasId, setSelectedAliasId] = useState<string | null>(null);
   const [activeRound, setActiveRound] = useState<ActiveRound | null>(null);
   const [votesMap, setVotesMap] = useState<Record<string, string>>({});
   const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
@@ -79,9 +79,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
 
     const list = (data as Alias[]) ?? [];
     setAliases(list);
-    setSelectedAliases((prev) =>
-      prev.length ? prev : list.map((alias) => alias.id)
-    );
+    setSelectedAliasId((prev) => prev ?? list[0]?.id ?? null);
   }, [gameId, session, supabase]);
 
   const fetchLeaderboard = useCallback(async () => {
@@ -225,43 +223,32 @@ export default function GameClient({ gameId }: { gameId: string }) {
   }, [session, activeRound, supabase, fetchVotesForRound]);
 
   const toggleAlias = (aliasId: string) => {
-    setSelectedAliases((prev) =>
-      prev.includes(aliasId)
-        ? prev.filter((id) => id !== aliasId)
-        : [...prev, aliasId]
-    );
+    setSelectedAliasId((prev) => (prev === aliasId ? null : aliasId));
   };
 
   const handleVote = async (optionId: string) => {
     if (!session || !activeRound) return;
-    if (!selectedAliases.length) {
-      setStatusMessage("Select at least one alias.");
+    if (!selectedAliasId) {
+      setStatusMessage("Select an alias first.");
       return;
     }
 
-    const payload = selectedAliases.map((aliasId) => ({
-      round_id: activeRound.round_id,
-      alias_id: aliasId,
-      option_id: optionId,
-      user_id: session.user.id,
-    }));
-
-    const { error } = await supabase
-      .from("votes")
-      .upsert(payload, { onConflict: "round_id,alias_id" });
+    const { error } = await supabase.from("votes").upsert(
+      {
+        round_id: activeRound.round_id,
+        alias_id: selectedAliasId,
+        option_id: optionId,
+        user_id: session.user.id,
+      },
+      { onConflict: "round_id,alias_id" }
+    );
 
     if (error) {
       setStatusMessage(error.message);
       return;
     }
 
-    setVotesMap((prev) => {
-      const next = { ...prev };
-      selectedAliases.forEach((aliasId) => {
-        next[aliasId] = optionId;
-      });
-      return next;
-    });
+    setVotesMap((prev) => ({ ...prev, [selectedAliasId]: optionId }));
 
     setStatusMessage(t("vote_applied"));
     setTimeout(() => setStatusMessage(null), 2000);
@@ -322,7 +309,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
             {role === "HOST" && (
               <Link
                 href={`/game/${gameId}/host`}
-                className="rounded-full border border-border bg-white/70 px-4 py-2 text-sm font-semibold text-foreground hover:border-accent"
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-accent"
               >
                 {t("host_controls")}
               </Link>
@@ -331,7 +318,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
             <button
               type="button"
               onClick={() => router.push("/games")}
-              className="rounded-full border border-border bg-white/70 px-4 py-2 text-sm text-muted hover:text-foreground"
+              className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
             >
               All games
             </button>
@@ -352,7 +339,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {aliases.map((alias) => {
-                  const selected = selectedAliases.includes(alias.id);
+                  const selected = selectedAliasId === alias.id;
                   return (
                     <button
                       key={alias.id}
@@ -361,7 +348,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                       className={`rounded-full border px-4 py-2 text-sm transition ${
                         selected
                           ? "border-accent bg-accent text-white"
-                          : "border-border bg-white/70 text-muted hover:text-foreground"
+                          : "border-border bg-card text-muted hover:text-foreground"
                       }`}
                     >
                       {alias.name}
@@ -381,7 +368,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                   value={newAliasName}
                   onChange={(event) => setNewAliasName(event.target.value)}
                   placeholder={t("alias_name")}
-                  className="flex-1 rounded-2xl border border-border bg-white/70 px-4 py-2 text-sm text-foreground outline-none focus:border-accent"
+                  className="flex-1 rounded-2xl border border-border bg-card px-4 py-2 text-sm text-foreground outline-none focus:border-accent"
                 />
                 <button
                   type="submit"
@@ -392,7 +379,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
               </form>
             </section>
 
-            <section className="rounded-3xl border border-border bg-white/70 p-6">
+            <section className="rounded-3xl border border-border bg-card p-6">
               {activeRound ? (
                 <>
                   <div className="flex items-center justify-between">
@@ -420,16 +407,26 @@ export default function GameClient({ gameId }: { gameId: string }) {
                       {t("choose_option")}
                     </p>
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      {activeOptions.map((option) => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => handleVote(option.id)}
-                          className="rounded-2xl border border-border bg-card px-4 py-4 text-left text-base font-semibold text-foreground transition hover:border-accent hover:bg-card-strong"
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                  {activeOptions.map((option) => {
+                    const isSelected =
+                      selectedAliasId &&
+                      votesMap[selectedAliasId] === option.id;
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => handleVote(option.id)}
+                        className={`rounded-2xl border px-4 py-4 text-left text-base font-semibold transition ${
+                          isSelected
+                            ? "border-accent bg-card-strong text-foreground"
+                            : "border-border bg-card text-foreground hover:border-accent hover:bg-card-strong"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
                     </div>
                   </div>
 
@@ -462,7 +459,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                 leaderboard.map((row, index) => (
                   <div
                     key={row.alias_id}
-                    className="flex items-center justify-between rounded-2xl border border-border bg-white/70 px-4 py-3"
+                    className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3"
                   >
                     <div>
                       <p className="text-sm uppercase tracking-[0.2em] text-muted">

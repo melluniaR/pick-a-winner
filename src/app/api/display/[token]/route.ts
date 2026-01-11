@@ -3,14 +3,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   const supabase = createAdminClient();
 
   const { data: game, error: gameError } = await supabase
     .from("games")
     .select("id, name")
-    .eq("display_token", params.token)
+    .eq("display_token", token)
     .maybeSingle();
 
   if (gameError || !game) {

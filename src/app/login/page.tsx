@@ -69,7 +69,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
-                  className="mt-2 w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none ring-0 transition focus:border-accent"
+                  className="mt-2 w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none ring-0 transition focus:border-accent"
                 />
               </label>
               <label className="block text-sm font-medium text-muted">
@@ -79,7 +79,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  className="mt-2 w-full rounded-2xl border border-border bg-white/70 px-4 py-3 text-base text-foreground outline-none ring-0 transition focus:border-accent"
+                  className="mt-2 w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none ring-0 transition focus:border-accent"
                 />
               </label>
               <div className="flex items-center justify-between text-sm text-muted">
@@ -116,7 +116,7 @@ export default function LoginPage() {
             </form>
           </section>
 
-          <aside className="flex flex-col justify-between rounded-3xl border border-border bg-white/70 p-8">
+          <aside className="flex flex-col justify-between rounded-3xl border border-border bg-card p-8">
             <div>
               <h3 className="text-2xl font-semibold text-foreground">
                 Live camp rounds
