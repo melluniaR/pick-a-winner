@@ -66,8 +66,12 @@ export async function GET(
     .order("aliases(name)", { ascending: true })
     .limit(12);
 
+  type AliasRef = { name: string | null; user_id: string | null };
+  const getAlias = (aliases: AliasRef | AliasRef[] | null) =>
+    Array.isArray(aliases) ? aliases[0] ?? null : aliases;
+
   const ownerIds = (leaderboard ?? [])
-    .map((row) => row.aliases?.user_id)
+    .map((row) => getAlias(row.aliases)?.user_id)
     .filter((id): id is string => Boolean(id));
 
   let ownerMap: Record<string, string> = {};
@@ -83,15 +87,17 @@ export async function GET(
     }, {} as Record<string, string>);
   }
 
-  const normalized = (leaderboard ?? []).map((row) => ({
-    alias_id: row.alias_id,
-    alias_name: row.aliases?.name ?? null,
-    owner_name:
-      row.aliases?.user_id && ownerMap[row.aliases.user_id]
-        ? ownerMap[row.aliases.user_id]
-        : null,
-    points: row.points ?? 0,
-  }));
+  const normalized = (leaderboard ?? []).map((row) => {
+    const alias = getAlias(row.aliases);
+    const ownerId = alias?.user_id ?? null;
+
+    return {
+      alias_id: row.alias_id,
+      alias_name: alias?.name ?? null,
+      owner_name: ownerId && ownerMap[ownerId] ? ownerMap[ownerId] : null,
+      points: row.points ?? 0,
+    };
+  });
 
   return NextResponse.json(
     {

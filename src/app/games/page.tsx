@@ -18,6 +18,12 @@ type GameRow = {
   } | null;
 };
 
+type MembershipRowRaw = {
+  game_id: string;
+  role: "HOST" | "PLAYER";
+  games: GameRow["games"] | GameRow["games"][] | null;
+};
+
 export default function GamesPage() {
   const supabase = useSupabase();
   const session = useSession();
@@ -51,7 +57,15 @@ export default function GamesPage() {
     if (fetchError) {
       setError(fetchError.message);
     } else {
-      setGames((data as GameRow[]) ?? []);
+      const rows = ((data ?? []) as MembershipRowRaw[]).map((row) => {
+        const game = Array.isArray(row.games) ? row.games[0] ?? null : row.games;
+        return {
+          game_id: row.game_id,
+          role: row.role,
+          games: game,
+        };
+      });
+      setGames(rows);
     }
     setLoading(false);
   }, [session, supabase]);

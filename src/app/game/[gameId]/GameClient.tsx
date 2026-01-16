@@ -60,8 +60,12 @@ export default function GameClient({ gameId }: { gameId: string }) {
         .eq("game_id", gameId)
         .maybeSingle();
 
+      const membershipGame = Array.isArray(membership?.games)
+        ? membership?.games[0]
+        : membership?.games;
+
       setRole(membership?.role ?? null);
-      setGameName(membership?.games?.name ?? null);
+      setGameName(membershipGame?.name ?? null);
     };
 
     loadBase();
@@ -90,13 +94,20 @@ export default function GameClient({ gameId }: { gameId: string }) {
       .order("points", { ascending: false })
       .order("aliases(name)", { ascending: true });
 
-    const rows = (data ?? []).map((row) => ({
-      alias_id: row.alias_id,
-      points: row.points ?? 0,
-      correct_count: row.correct_count ?? 0,
-      alias_name: row.aliases?.name ?? null,
-      owner_id: row.aliases?.user_id ?? null,
-    }));
+    type AliasRef = { name: string | null; user_id: string | null };
+    const getAlias = (aliases: AliasRef | AliasRef[] | null) =>
+      Array.isArray(aliases) ? aliases[0] ?? null : aliases;
+
+    const rows = (data ?? []).map((row) => {
+      const alias = getAlias(row.aliases);
+      return {
+        alias_id: row.alias_id,
+        points: row.points ?? 0,
+        correct_count: row.correct_count ?? 0,
+        alias_name: alias?.name ?? null,
+        owner_id: alias?.user_id ?? null,
+      };
+    });
 
     const ownerIds = rows
       .map((row) => row.owner_id)
