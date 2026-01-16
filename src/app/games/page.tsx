@@ -32,6 +32,12 @@ export default function GamesPage() {
   const [displayName, setDisplayName] = useState("");
   const [hasDisplayName, setHasDisplayName] = useState(false);
   const [savingDisplayName, setSavingDisplayName] = useState(false);
+  const formatRole = (role: GameRow["role"]) =>
+    role === "HOST" ? t("role_host") : t("role_player");
+  const formatStatus = (status?: GameRow["games"] | null) => {
+    if (!status?.status) return "";
+    return t(`status_${status.status.toLowerCase()}`);
+  };
 
   const fetchGames = useCallback(async () => {
     if (!session) return;
@@ -82,7 +88,7 @@ export default function GamesPage() {
     setError(null);
 
     if (!hasDisplayName) {
-      setError("Set your display name before joining a game.");
+      setError(t("display_name_needed_join"));
       return;
     }
 
@@ -107,7 +113,7 @@ export default function GamesPage() {
     setError(null);
 
     if (!hasDisplayName) {
-      setError("Set your display name before creating a game.");
+      setError(t("display_name_needed_create"));
       return;
     }
 
@@ -134,7 +140,7 @@ export default function GamesPage() {
     setError(null);
 
     if (!displayName.trim()) {
-      setError("Display name is required.");
+      setError(t("display_name_required"));
       return;
     }
 
@@ -156,7 +162,7 @@ export default function GamesPage() {
   if (session === undefined) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Loading...
+        {t("loading")}
       </div>
     );
   }
@@ -164,7 +170,7 @@ export default function GamesPage() {
   if (session === null) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Redirecting...
+        {t("redirecting")}
       </div>
     );
   }
@@ -202,17 +208,16 @@ export default function GamesPage() {
         {!hasDisplayName && (
           <section className="rounded-3xl border border-border bg-card p-6">
             <h2 className="text-xl font-semibold text-foreground">
-              Set your display name
+              {t("set_display_name")}
             </h2>
             <p className="mt-2 text-sm text-muted">
-              This name is shown with your aliases on the leaderboard and must
-              be unique.
+              {t("display_name_description")}
             </p>
             <form onSubmit={handleSaveDisplayName} className="mt-4 flex gap-3">
               <input
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Display name"
+                placeholder={t("display_name")}
                 className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
               />
               <button
@@ -220,7 +225,7 @@ export default function GamesPage() {
                 disabled={savingDisplayName}
                 className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {savingDisplayName ? "Saving..." : "Save"}
+                {savingDisplayName ? t("saving") : t("save")}
               </button>
             </form>
           </section>
@@ -273,10 +278,10 @@ export default function GamesPage() {
             {t("my_games")}
           </h2>
           {loading ? (
-            <p className="mt-4 text-sm text-muted">Loading games...</p>
+            <p className="mt-4 text-sm text-muted">{t("loading_games")}</p>
           ) : games.length === 0 ? (
             <p className="mt-4 text-sm text-muted">
-              No games yet. Create or join one to get started.
+              {t("no_games")}
             </p>
           ) : (
             <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -288,18 +293,18 @@ export default function GamesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-lg font-semibold text-foreground">
-                        {membership.games?.name ?? "Untitled"}
+                        {membership.games?.name ?? t("untitled")}
                       </p>
                       <p className="text-xs uppercase tracking-[0.2em] text-muted">
-                        {membership.role}
+                        {formatRole(membership.role)}
                       </p>
                     </div>
                     <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
-                      {membership.games?.status}
+                      {formatStatus(membership.games)}
                     </span>
                   </div>
                   <p className="mt-3 text-xs text-muted">
-                    Join code: {membership.games?.join_code}
+                    {t("join_code_label")}: {membership.games?.join_code}
                   </p>
                   <button
                     className="mt-4 w-full rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/I18nProvider";
 
 type DisplayState = {
   game: { id: string; name: string };
@@ -8,12 +9,18 @@ type DisplayState = {
   round?: { id: string; title: string | null; hint_text: string | null };
   options?: { id: string; label: string; count: number }[];
   totalVotes?: number;
-  leaderboard: { alias_id: string; name: string; points: number }[];
+  leaderboard: {
+    alias_id: string;
+    alias_name: string | null;
+    owner_name: string | null;
+    points: number;
+  }[];
 };
 
 export default function DisplayClient({ token }: { token: string }) {
   const [state, setState] = useState<DisplayState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     let active = true;
@@ -24,12 +31,12 @@ export default function DisplayClient({ token }: { token: string }) {
           cache: "no-store",
         });
         if (!res.ok) {
-          throw new Error("Unable to load display state.");
+          throw new Error(t("unable_load_display"));
         }
         const data = (await res.json()) as DisplayState;
         if (active) setState(data);
       } catch (err) {
-        if (active) setError((err as Error).message);
+        if (active) setError((err as Error).message || t("unable_load_display"));
       }
     };
 
@@ -40,7 +47,7 @@ export default function DisplayClient({ token }: { token: string }) {
       active = false;
       clearInterval(interval);
     };
-  }, [token]);
+  }, [token, t]);
 
   if (error) {
     return (
@@ -53,7 +60,7 @@ export default function DisplayClient({ token }: { token: string }) {
   if (!state) {
     return (
       <div className="flex min-h-screen items-center justify-center text-lg text-muted">
-        Loading display...
+        {t("loading_display")}
       </div>
     );
   }
@@ -64,7 +71,7 @@ export default function DisplayClient({ token }: { token: string }) {
         <header className="flex items-center justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-muted">
-              Live display
+              {t("live_display")}
             </p>
             <h1 className="text-5xl font-semibold tracking-tight">
               {state.game.name}
@@ -82,10 +89,10 @@ export default function DisplayClient({ token }: { token: string }) {
               }}
               className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
             >
-              Exit display
+              {t("exit_display")}
             </button>
             <div className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted">
-              {state.mode === "OPEN" ? "Voting live" : "Leaderboard"}
+              {state.mode === "OPEN" ? t("voting_live") : t("leaderboard")}
             </div>
           </div>
         </header>
@@ -95,14 +102,14 @@ export default function DisplayClient({ token }: { token: string }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-muted">
-                  Active round
+                  {t("active_round")}
                 </p>
                 <h2 className="text-4xl font-semibold">
-                  {state.round.title ?? "Round"}
+                  {state.round.title ?? t("round_fallback")}
                 </h2>
               </div>
               <p className="text-sm text-muted">
-                Total votes: {state.totalVotes ?? 0}
+                {t("total_votes")}: {state.totalVotes ?? 0}
               </p>
             </div>
             {state.round.hint_text && (
@@ -124,7 +131,10 @@ export default function DisplayClient({ token }: { token: string }) {
                     <div className="flex items-center justify-between">
                       <p className="text-lg font-semibold">{option.label}</p>
                       <p className="text-sm text-muted">
-                        {option.count} votes ({percentage}%)
+                        {t("votes_with_percentage", {
+                          count: option.count,
+                          percentage,
+                        })}
                       </p>
                     </div>
                     <div className="mt-3 h-3 w-full rounded-full bg-card-strong">
@@ -143,29 +153,38 @@ export default function DisplayClient({ token }: { token: string }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-muted">
-                  Standings
+                  {t("standings")}
                 </p>
-                <h2 className="text-4xl font-semibold">Leaderboard</h2>
+                <h2 className="text-4xl font-semibold">{t("leaderboard")}</h2>
               </div>
-              <p className="text-sm text-muted">Top {state.leaderboard.length}</p>
+              <p className="text-sm text-muted">
+                {t("top_count", { count: state.leaderboard.length })}
+              </p>
             </div>
             <div className="mt-8 grid gap-4">
-              {state.leaderboard.map((row, index) => (
-                <div
-                  key={row.alias_id}
-                  className="flex items-center justify-between rounded-2xl border border-border bg-card px-6 py-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-semibold text-muted">
-                      #{index + 1}
+              {state.leaderboard.map((row, index) => {
+                const displayName = row.alias_name ?? t("alias_fallback");
+                const label = row.owner_name
+                  ? `${displayName} (${row.owner_name})`
+                  : displayName;
+
+                return (
+                  <div
+                    key={row.alias_id}
+                    className="flex items-center justify-between rounded-2xl border border-border bg-card px-6 py-4"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl font-semibold text-muted">
+                        #{index + 1}
+                      </span>
+                      <span className="text-2xl font-semibold">{label}</span>
+                    </div>
+                    <span className="text-3xl font-semibold text-foreground">
+                      {row.points}
                     </span>
-                    <span className="text-2xl font-semibold">{row.name}</span>
                   </div>
-                  <span className="text-3xl font-semibold text-foreground">
-                    {row.points}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

@@ -18,7 +18,7 @@ type LeaderRow = {
   alias_id: string;
   points: number;
   correct_count: number;
-  alias_name: string;
+  alias_name: string | null;
   owner_name: string | null;
 };
 
@@ -94,7 +94,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
       alias_id: row.alias_id,
       points: row.points ?? 0,
       correct_count: row.correct_count ?? 0,
-      alias_name: row.aliases?.name ?? "Alias",
+      alias_name: row.aliases?.name ?? null,
       owner_id: row.aliases?.user_id ?? null,
     }));
 
@@ -197,14 +197,17 @@ export default function GameClient({ gameId }: { gameId: string }) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "rounds", filter: `game_id=eq.${gameId}` },
-        () => fetchActiveRound()
+        () => {
+          fetchActiveRound();
+          fetchLeaderboard();
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session, gameId, supabase, fetchActiveRound]);
+  }, [session, gameId, supabase, fetchActiveRound, fetchLeaderboard]);
 
   useEffect(() => {
     if (!session || !activeRound) return;
@@ -229,7 +232,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
   const handleVote = async (optionId: string) => {
     if (!session || !activeRound) return;
     if (!selectedAliasId) {
-      setStatusMessage("Select an alias first.");
+      setStatusMessage(t("select_alias_first"));
       return;
     }
 
@@ -282,7 +285,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
   if (session === undefined) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Loading...
+        {t("loading")}
       </div>
     );
   }
@@ -290,7 +293,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
   if (session === null) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Redirecting...
+        {t("redirecting")}
       </div>
     );
   }
@@ -300,9 +303,11 @@ export default function GameClient({ gameId }: { gameId: string }) {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-muted">Game</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-muted">
+              {t("game_label")}
+            </p>
             <h1 className="text-4xl font-semibold text-foreground">
-              {gameName ?? "Loading..."}
+              {gameName ?? t("loading")}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -320,7 +325,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
               onClick={() => router.push("/games")}
               className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
             >
-              All games
+              {t("all_games")}
             </button>
           </div>
         </header>
@@ -333,7 +338,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                   {t("my_aliases")}
                 </h2>
                 <span className="text-xs uppercase tracking-[0.2em] text-muted">
-                  {aliases.length} active
+                  {t("active_count", { count: aliases.length })}
                 </span>
               </div>
 
@@ -353,7 +358,9 @@ export default function GameClient({ gameId }: { gameId: string }) {
                     >
                       {alias.name}
                       {votesMap[alias.id] && activeRound && (
-                        <span className="ml-2 text-xs opacity-80">voted</span>
+                        <span className="ml-2 text-xs opacity-80">
+                          {t("alias_voted")}
+                        </span>
                       )}
                     </button>
                   );
@@ -387,11 +394,11 @@ export default function GameClient({ gameId }: { gameId: string }) {
                       {t("active_round")}
                     </h2>
                     <span className="rounded-full border border-border px-3 py-1 text-xs uppercase text-muted">
-                      OPEN
+                      {t("status_open")}
                     </span>
                   </div>
                   <p className="mt-2 text-lg font-semibold text-foreground">
-                    {activeRound.title ?? "Round"}
+                    {activeRound.title ?? t("round_fallback")}
                   </p>
                   {activeRound.hint_text && (
                     <p className="mt-2 text-sm text-muted">
@@ -440,8 +447,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                     {t("waiting_round")}
                   </h2>
                   <p className="text-sm text-muted">
-                    The host will open the next round soon. Keep your aliases
-                    ready for fast voting.
+                    {t("waiting_round_description")}
                   </p>
                 </div>
               )}
@@ -454,7 +460,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
             </h2>
             <div className="mt-4 space-y-3">
               {leaderboard.length === 0 ? (
-                <p className="text-sm text-muted">No scores yet.</p>
+                <p className="text-sm text-muted">{t("no_scores")}</p>
               ) : (
                 leaderboard.map((row, index) => (
                   <div
@@ -466,7 +472,7 @@ export default function GameClient({ gameId }: { gameId: string }) {
                         #{index + 1}
                       </p>
                       <p className="text-lg font-semibold text-foreground">
-                        {row.alias_name}
+                        {row.alias_name ?? t("alias_fallback")}
                         {row.owner_name ? ` (${row.owner_name})` : ""}
                       </p>
                     </div>
@@ -474,7 +480,9 @@ export default function GameClient({ gameId }: { gameId: string }) {
                       <p className="text-2xl font-semibold text-foreground">
                         {row.points}
                       </p>
-                      <p className="text-xs text-muted">{row.correct_count} correct</p>
+                      <p className="text-xs text-muted">
+                        {t("correct_count", { count: row.correct_count })}
+                      </p>
                     </div>
                   </div>
                 ))

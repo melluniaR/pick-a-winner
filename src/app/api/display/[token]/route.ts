@@ -85,11 +85,11 @@ export async function GET(
 
   const normalized = (leaderboard ?? []).map((row) => ({
     alias_id: row.alias_id,
-    name: `${row.aliases?.name ?? "Alias"}${
+    alias_name: row.aliases?.name ?? null,
+    owner_name:
       row.aliases?.user_id && ownerMap[row.aliases.user_id]
-        ? ` (${ownerMap[row.aliases.user_id]})`
-        : ""
-    }`,
+        ? ownerMap[row.aliases.user_id]
+        : null,
     points: row.points ?? 0,
   }));
 

@@ -27,7 +27,7 @@ type LeaderRow = {
   alias_id: string;
   points: number;
   correct_count: number;
-  alias_name: string;
+  alias_name: string | null;
   owner_name: string | null;
 };
 
@@ -53,6 +53,12 @@ export default function HostClient({ gameId }: { gameId: string }) {
   const openRound = useMemo(
     () => rounds.find((round) => round.status === "OPEN") ?? null,
     [rounds]
+  );
+  const statusLabel = useCallback(
+    (status: RoundRow["status"]) => {
+      return t(`status_${status.toLowerCase()}`);
+    },
+    [t]
   );
 
   const fetchRounds = useCallback(async () => {
@@ -90,7 +96,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
       alias_id: row.alias_id,
       points: row.points ?? 0,
       correct_count: row.correct_count ?? 0,
-      alias_name: row.aliases?.name ?? "Alias",
+      alias_name: row.aliases?.name ?? null,
       owner_id: row.aliases?.user_id ?? null,
     }));
 
@@ -214,7 +220,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
 
     const trimmedOptions = options.map((opt) => opt.trim()).filter(Boolean);
     if (trimmedOptions.length < 2) {
-      setStatusMessage("Add at least two options.");
+      setStatusMessage(t("add_options_error"));
       return;
     }
 
@@ -252,13 +258,11 @@ export default function HostClient({ gameId }: { gameId: string }) {
 
   const handleScoreRound = async () => {
     if (!openRound || !selectedCorrect) {
-      setStatusMessage("Select the correct option.");
+      setStatusMessage(t("select_correct_option"));
       return;
     }
 
-    const confirmed = window.confirm(
-      "Score this round now? This will update the leaderboard."
-    );
+    const confirmed = window.confirm(t("confirm_score_round"));
     if (!confirmed) return;
 
     const { error } = await supabase.rpc("score_round", {
@@ -276,9 +280,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
   };
 
   const handleEndGame = async () => {
-    const confirmed = window.confirm(
-      "End this game now? This will close any open round."
-    );
+    const confirmed = window.confirm(t("confirm_end_game"));
     if (!confirmed) return;
 
     const { error } = await supabase.rpc("end_game", {
@@ -304,7 +306,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
   if (session === undefined) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Loading...
+        {t("loading")}
       </div>
     );
   }
@@ -312,7 +314,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
   if (session === null) {
     return (
       <div className="min-h-screen p-8 text-center text-muted">
-        Redirecting...
+        {t("redirecting")}
       </div>
     );
   }
@@ -326,7 +328,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
               {t("host_controls")}
             </p>
             <h1 className="text-4xl font-semibold text-foreground">
-              {gameName ?? "Loading..."}
+              {gameName ?? t("loading")}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -344,11 +346,13 @@ export default function HostClient({ gameId }: { gameId: string }) {
                 onClick={handleEndGame}
                 className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-accent"
               >
-                End game
+                {t("end_game")}
               </button>
             ) : (
               <span className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted">
-                Ended {endedAt ? new Date(endedAt).toLocaleString() : ""}
+                {t("ended_at", {
+                  date: endedAt ? new Date(endedAt).toLocaleString() : "",
+                })}
               </span>
             )}
             <button
@@ -356,7 +360,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
               onClick={() => router.push(`/game/${gameId}`)}
               className="rounded-full border border-border bg-card px-4 py-2 text-sm text-muted hover:text-foreground"
             >
-              Player view
+              {t("player_view")}
             </button>
           </div>
         </header>
@@ -434,7 +438,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
             </h2>
             <div className="mt-4 space-y-3">
               {leaderboard.length === 0 ? (
-                <p className="text-sm text-muted">No scores yet.</p>
+                <p className="text-sm text-muted">{t("no_scores")}</p>
               ) : (
                 leaderboard.map((row) => (
                   <div
@@ -442,10 +446,12 @@ export default function HostClient({ gameId }: { gameId: string }) {
                     className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3"
                   >
                     <p className="text-sm font-semibold text-foreground">
-                      {row.alias_name}
+                      {row.alias_name ?? t("alias_fallback")}
                       {row.owner_name ? ` (${row.owner_name})` : ""}
                     </p>
-                    <p className="text-sm text-muted">{row.points} pts</p>
+                    <p className="text-sm text-muted">
+                      {t("points_short", { count: row.points })}
+                    </p>
                   </div>
                 ))
               )}
@@ -457,10 +463,10 @@ export default function HostClient({ gameId }: { gameId: string }) {
           <section className="rounded-3xl border border-border bg-card p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-foreground">
-                Final scorecard
+                {t("final_scorecard")}
               </h2>
               <span className="text-xs uppercase tracking-[0.2em] text-muted">
-                {leaderboard.length} aliases
+                {t("aliases_count", { count: leaderboard.length })}
               </span>
             </div>
             <div className="mt-4 grid gap-3">
@@ -474,11 +480,11 @@ export default function HostClient({ gameId }: { gameId: string }) {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      {row.alias_name}
+                      {row.alias_name ?? t("alias_fallback")}
                       {row.owner_name ? ` (${row.owner_name})` : ""}
                     </p>
                     <p className="text-xs text-muted">
-                      {row.correct_count} correct picks
+                      {t("correct_picks", { count: row.correct_count })}
                     </p>
                   </div>
                   <span className="text-lg font-semibold text-foreground">
@@ -492,9 +498,11 @@ export default function HostClient({ gameId }: { gameId: string }) {
 
         <section className="rounded-3xl border border-border bg-card p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">Rounds</h2>
+            <h2 className="text-xl font-semibold text-foreground">
+              {t("rounds")}
+            </h2>
             <span className="text-xs uppercase tracking-[0.2em] text-muted">
-              {rounds.length} total
+              {t("total_rounds", { count: rounds.length })}
             </span>
           </div>
 
@@ -507,14 +515,14 @@ export default function HostClient({ gameId }: { gameId: string }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-muted">
-                      Round {round.round_number}
+                      {t("round_number", { number: round.round_number })}
                     </p>
                     <p className="text-lg font-semibold text-foreground">
-                      {round.title ?? "Untitled"}
+                      {round.title ?? t("untitled")}
                     </p>
                   </div>
                   <span className="rounded-full border border-border px-3 py-1 text-xs text-muted">
-                    {round.status}
+                    {statusLabel(round.status)}
                   </span>
                 </div>
                 {round.hint_text && (
@@ -541,7 +549,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
                 {t("live_distribution")}
               </h2>
               <span className="rounded-full border border-border px-3 py-1 text-xs uppercase text-muted">
-                OPEN
+                {t("status_open")}
               </span>
             </div>
 
@@ -563,7 +571,7 @@ export default function HostClient({ gameId }: { gameId: string }) {
                     </span>
                   </div>
                   <span className="text-sm text-muted">
-                    {option.votes_count} votes
+                    {t("votes_label", { count: option.votes_count })}
                   </span>
                 </label>
               ))}

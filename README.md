@@ -71,6 +71,7 @@ Migrations live in `supabase/migrations`. Highlights:
 - URL: `/display/[display_token]` (display token stored on the game row).
 - Read-only, no auth required.
 - Shows live vote distribution when OPEN, otherwise leaderboard.
+- Shortcut: On the login page, enter a join code and open the public display without signing in.
 
 ## Deployment notes
 - Deploy Next.js to Vercel.

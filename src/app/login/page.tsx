@@ -15,6 +15,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [displayCode, setDisplayCode] = useState("");
+  const [displayError, setDisplayError] = useState<string | null>(null);
+  const [displayLoading, setDisplayLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,13 +40,46 @@ export default function LoginPage() {
     router.push("/games");
   };
 
+  const handleDisplay = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setDisplayError(null);
+    const code = displayCode.trim();
+    if (!code) {
+      setDisplayError(t("join_code_required"));
+      return;
+    }
+
+    setDisplayLoading(true);
+    try {
+      const res = await fetch(`/api/display/by-code?code=${encodeURIComponent(code)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        setDisplayError(t("display_code_invalid"));
+        setDisplayLoading(false);
+        return;
+      }
+      const data = (await res.json()) as { token?: string };
+      if (!data.token) {
+        setDisplayError(t("display_code_invalid"));
+        setDisplayLoading(false);
+        return;
+      }
+      router.push(`/display/${data.token}`);
+    } catch {
+      setDisplayError(t("display_code_invalid"));
+    } finally {
+      setDisplayLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen px-6 py-10">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
         <header className="flex items-center justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-muted">
-              Camp prediction game
+              {t("camp_prediction_game")}
             </p>
             <h1 className="text-4xl font-semibold text-foreground md:text-5xl">
               {t("app_name")}
@@ -58,7 +94,7 @@ export default function LoginPage() {
               {mode === "sign_in" ? t("sign_in") : t("sign_up")}
             </h2>
             <p className="mt-2 text-sm text-muted">
-              Signed-in sessions stay active across days on this device.
+              {t("sessions_persist")}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -111,35 +147,62 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full rounded-2xl bg-accent px-4 py-3 text-base font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? "..." : mode === "sign_in" ? t("sign_in") : t("sign_up")}
+                {loading ? t("loading") : mode === "sign_in" ? t("sign_in") : t("sign_up")}
               </button>
             </form>
+
+            <div className="mt-6 border-t border-border/60 pt-6">
+              <h3 className="text-lg font-semibold text-foreground">
+                {t("view_display")}
+              </h3>
+              <p className="mt-2 text-sm text-muted">
+                {t("view_display_description")}
+              </p>
+              <form onSubmit={handleDisplay} className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  value={displayCode}
+                  onChange={(event) => setDisplayCode(event.target.value)}
+                  placeholder={t("enter_game_code")}
+                  className="flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+                />
+                <button
+                  type="submit"
+                  disabled={displayLoading}
+                  className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {displayLoading ? t("loading") : t("view_display")}
+                </button>
+              </form>
+              {displayError && (
+                <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {displayError}
+                </div>
+              )}
+            </div>
           </section>
 
           <aside className="flex flex-col justify-between rounded-3xl border border-border bg-card p-8">
             <div>
               <h3 className="text-2xl font-semibold text-foreground">
-                Live camp rounds
+                {t("live_camp_rounds")}
               </h3>
               <p className="mt-3 text-sm text-muted">
-                Make fast predictions for multiple aliases, watch the live vote
-                distribution, and see the leaderboard update in real time across
-                the whole camp.
+                {t("live_camp_description")}
               </p>
               <div className="mt-6 grid gap-3 text-sm text-muted">
                 <div className="rounded-2xl border border-border bg-card-strong px-4 py-3">
-                  50-150 players on one scoreboard
+                  {t("stat_players")}
                 </div>
                 <div className="rounded-2xl border border-border bg-card-strong px-4 py-3">
-                  Rolling rounds with no visible history
+                  {t("stat_rolling_rounds")}
                 </div>
                 <div className="rounded-2xl border border-border bg-card-strong px-4 py-3">
-                  Separate public display token for big screens
+                  {t("stat_display_token")}
                 </div>
               </div>
             </div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted">
-              Powered by Supabase Realtime
+              {t("powered_by_realtime")}
             </p>
           </aside>
         </div>
