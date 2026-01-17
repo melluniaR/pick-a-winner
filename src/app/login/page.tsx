@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"sign_in" | "sign_up">("sign_in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [displayCode, setDisplayCode] = useState("");
@@ -110,13 +111,54 @@ export default function LoginPage() {
               </label>
               <label className="block text-sm font-medium text-muted">
                 {t("password")}
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  className="mt-2 w-full rounded-2xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none ring-0 transition focus:border-accent"
-                />
+                <div className="relative mt-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                    className="w-full rounded-2xl border border-border bg-card px-4 py-3 pr-12 text-base text-foreground outline-none ring-0 transition focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+                    aria-label={showPassword ? t("hide_password") : t("show_password")}
+                    title={showPassword ? t("hide_password") : t("show_password")}
+                  >
+                    {showPassword ? (
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 5.1A10.4 10.4 0 0 1 12 5c6 0 9.6 5.4 9.6 7 0 .6-.5 1.6-1.4 2.7" />
+                        <path d="M6.3 6.3C3.8 8.1 2.4 10.7 2.4 12c0 1.6 3.6 7 9.6 7a10 10 0 0 0 3.6-.7" />
+                      </svg>
+                    ) : (
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2.4 12c0-1.6 3.6-7 9.6-7s9.6 5.4 9.6 7-3.6 7-9.6 7-9.6-5.4-9.6-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </label>
               <div className="flex items-center justify-between text-sm text-muted">
                 <label className="flex items-center gap-2">
